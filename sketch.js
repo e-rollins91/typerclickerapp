@@ -71,7 +71,7 @@ function setup() {
         buyAutoTyperBtn.mousePressed(buyAutoTyper);
     }
     autoTyperInfo = select("#autoTyperInfo");
-    updateAutoTyperInfo(); // Initial update
+    updateAutoTyperInfo(); // 
     let upgradeATBtn = select("#upgradeATBtn");
     if (upgradeATBtn) {
         upgradeATBtn.mousePressed(upgradeActiveAutoTyper);
@@ -87,7 +87,6 @@ function resetGameState() {
         window.location.reload();
     }
 }
-
 function saveGameState() {
     const state = {
         points: points,
@@ -152,7 +151,6 @@ function loadGameState() {
         console.error("Error loading game state: ", e);
     }
 }
-
 function getRandomPrompt() {
     return dictionary[Math.floor(Math.random() * dictionary.length)];
 }
@@ -186,9 +184,23 @@ function mousePressed() {
     if (mouseButton === RIGHT) {
         handleRightClick(mouseX, mouseY);
     } else if (mouseButton === LEFT) {
+        // First check if the click is on any auto typer.
+        let clickedOnAutoTyper = false;
         for (let at of autoTypers) {
-            at.pressed();
+            if (dist(mouseX, mouseY, at.x, at.y) < 15) {
+                clickedOnAutoTyper = true;
+                at.pressed(); // Let the auto typer handle its own pressed logic.
+                break;
+            }
         }
+        // If the click was not on an auto typer, remove the active auto typer (if any)
+        if (!clickedOnAutoTyper && activeAutoTyper) {
+            // Remove the active auto typer from the array
+            autoTypers = autoTypers.filter(at => at !== activeAutoTyper);
+            activeAutoTyper = null;
+            updateAutoTyperInfo(); // This hides the info panel.
+        }
+        // Also allow boxes to be dragged.
         for (let box of boxes) {
             box.pressed();
         }
@@ -375,16 +387,16 @@ function boxIsValidForSpawn(x, y, w, h) {
 }
 function updateAutoTyperInfo() {
     if (activeAutoTyper) {
+        // Make the info panel visible.
+        autoTyperInfo.style("display", "block");
         select("#atWPM").html("WPM: " + activeAutoTyper.wordPerMinute);
         select("#atMultiplier").html("Multiplier: " + activeAutoTyper.multiplier.toFixed(2));
         select("#atLevel").html("Level: " + activeAutoTyper.level);
     } else {
-        select("#atWPM").html("WPM: -");
-        select("#atMultiplier").html("Multiplier: -");
-        select("#atLevel").html("Level: -");
+        // Hide the info panel when no auto typer is selected.
+        autoTyperInfo.style("display", "none");
     }
 }
-
 function upgradeActiveAutoTyper() {
     if (!activeAutoTyper) {
         alert("No Auto Typer selected!");
