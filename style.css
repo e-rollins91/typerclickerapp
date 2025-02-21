@@ -1,0 +1,60 @@
+body {
+    margin: 0;
+    overflow: hidden;
+    background-color: #d0d0d0; /* UI background color */
+}
+
+canvas#gameCanvas {
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+/* Container for our three buttons */
+#controls {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    z-index: 10;
+    display: flex;
+    gap: 10px;
+}
+
+    /* Shared button styling */
+    #controls button {
+        padding: 10px 20px;
+        font-size: 16px;
+        background-color: #fff;
+        border: 1px solid #333;
+        border-radius: 5px;
+        cursor: pointer;
+    }
+#autoTyperInfo button {
+    margin-top: 10px;
+    padding: 5px 10px;
+    font-size: 14px;
+}
+
+.infoPanel {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    width: 200px;
+    padding: 10px;
+    background-color: #fff;
+    border: 1px solid #333;
+    border-radius: 5px;
+    z-index: 10;
+    font-family: sans-serif;
+}
+
+/* Stat meter positioned at the top right */
+#statMeter {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 10;
+    padding: 10px 20px;
+    font-size: 16px;
+    background-color: #fff;
+    border: 1px solid #333;
+    border-radius: 5px;
+}
