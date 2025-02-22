@@ -25,7 +25,7 @@ const dictionary = [
 function setup() {
 
     // Create a centered 1200x800 canvas
-    let cnv = createCanvas(1200, 800);
+    let cnv = createCanvas(1500, 800);
     cnv.id("gameCanvas");
     cnv.style("position", "absolute");
     cnv.style("left", "50%");
@@ -72,6 +72,10 @@ function setup() {
     }
     autoTyperInfo = select("#autoTyperInfo");
     updateAutoTyperInfo(); // 
+    let detachATBtn = select("#detachATBtn");
+if (detachATBtn) {
+  detachATBtn.mousePressed(detachActiveAutoTyper);
+}
     let upgradeATBtn = select("#upgradeATBtn");
     if (upgradeATBtn) {
         upgradeATBtn.mousePressed(upgradeActiveAutoTyper);
@@ -133,7 +137,16 @@ function loadGameState() {
             b.currentIndex = bData.currentIndex;
             b.finished = bData.finished;
             b.autoTyperActive = bData.autoTyperActive;
+            // Ensure box is not selected upon load.
+            b.selected = false;
             return b;
+        });
+
+        // Force a reset on letter boxes with auto typers so they begin typing.
+        boxes.forEach(box => {
+            if (box.autoTyperActive) {
+                box.reset();
+            }
         });
 
         // Recreate auto typers.
@@ -143,34 +156,62 @@ function loadGameState() {
             at.wordPerMinute = atData.wordPerMinute;
             at.multiplier = atData.multiplier;
             at.typingInterval = atData.typingInterval;
-            // If attachedIndex is valid, attach the auto typer to the corresponding box.
-            at.attachedBox = (atData.attachedIndex >= 0 && atData.attachedIndex < boxes.length) ? boxes[atData.attachedIndex] : null;
+            // Reset lastUpdateTime so the auto typer resumes immediately.
+            at.lastUpdateTime = millis();
+            // Reattach to its box if valid.
+            at.attachedBox = (atData.attachedIndex >= 0 && atData.attachedIndex < boxes.length) 
+                ? boxes[atData.attachedIndex] 
+                : null;
             return at;
         });
+
+        // Clear the active box to prevent any accidental selection.
+        activeBox = null;
     } catch (e) {
         console.error("Error loading game state: ", e);
     }
 }
+
 function getRandomPrompt() {
     return dictionary[Math.floor(Math.random() * dictionary.length)];
 }
 function getRandomLetter() {
-    const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    const letters = "abcdefghijklmnopqrstuvwxyz";
     return letters.charAt(Math.floor(Math.random() * letters.length));
 }
 function draw() {
     background(230);
-
-    // Draw spawn area on the left (300x300)
+  
+    // Draw spawn area on left (300x300)
     noStroke();
     fill(220);
     rect(0, 0, spawnAreaWidth, spawnAreaHeight);
-
+    
+    // Draw "STASH" vertically (all caps) in dark dark grey in the spawn area
+    push();
+      textAlign(CENTER, CENTER);
+      textSize(100); // Adjust as needed for a large font that fills the area
+      fill(85);      // Dark dark grey
+      // Move to the center of the spawn area
+      translate(spawnAreaWidth/2, spawnAreaHeight/2);
+      // Rotate so that the text goes vertically from top to bottom
+      rotate(-HALF_PI);
+      text("STASH", 0, 0);
+    pop();
+    
     // Draw auto typer area (bottom 100px)
     fill(200);
     rect(0, height - 100, width, 100);
-
-    // Draw boxes and auto typers
+    
+    // Draw "TYPERS" horizontally in the center of the bottom area
+    push();
+      textAlign(CENTER, CENTER);
+      textSize(80);  // Large font; adjust as needed
+      fill(85);      // Dark dark grey
+      text("AUTO TYPERS", width/2, height - 50);
+    pop();
+  
+    // Now draw boxes and auto typers
     for (let box of boxes) {
         box.update();
         box.display();
@@ -179,7 +220,7 @@ function draw() {
         at.update();
         at.display();
     }
-}
+  }
 function mousePressed() {
     if (mouseButton === RIGHT) {
         handleRightClick(mouseX, mouseY);
@@ -193,13 +234,8 @@ function mousePressed() {
                 break;
             }
         }
-        // If the click was not on an auto typer, remove the active auto typer (if any)
-        if (!clickedOnAutoTyper && activeAutoTyper) {
-            // Remove the active auto typer from the array
-            autoTypers = autoTypers.filter(at => at !== activeAutoTyper);
-            activeAutoTyper = null;
-            updateAutoTyperInfo(); // This hides the info panel.
-        }
+       
+        
         // Also allow boxes to be dragged.
         for (let box of boxes) {
             box.pressed();
@@ -347,6 +383,24 @@ function buyAutoTyper() {
         alert("Not enough points to buy an AutoTyper!");
     }
 }
+function detachActiveAutoTyper() {
+    if (!activeAutoTyper) {
+      alert("No active auto typer selected!");
+      return;
+    }
+    // If attached, detach it from its box.
+    if (activeAutoTyper.attachedBox) {
+      activeAutoTyper.attachedBox.autoTyperActive = false;
+      activeAutoTyper.attachedBox = null;
+    }
+    // Calculate new position in the auto typer spawn area.
+    // This uses the same logic as in buyAutoTyper().
+    let unattachedCount = autoTypers.filter(at => !at.attachedBox).length;
+    let gap = 40;
+    activeAutoTyper.x = 50 + unattachedCount * gap;
+    activeAutoTyper.y = height - 30; // Snap to the designated auto typer area.
+    updateAutoTyperInfo();
+  }
 function buyFlatIncrease() {
     if (points >= 10) {
         points -= 10;
@@ -398,6 +452,10 @@ function updateAutoTyperInfo() {
     }
 }
 function upgradeActiveAutoTyper() {
+    if(points < 10) {
+        alert("Not enough points to upgrade AutoTyper!");
+        return;
+    }
     if (!activeAutoTyper) {
         alert("No Auto Typer selected!");
         return;
@@ -409,199 +467,256 @@ function upgradeActiveAutoTyper() {
     activeAutoTyper.multiplier += 0.1;      // Increase multiplier by 0.1
     // Optionally, you could also decrease its typing interval if you want it to type faster.
     // activeAutoTyper.typingInterval = max(activeAutoTyper.typingInterval - 50, 100);
-
+    points -= 10;
+    updateScoreDisplay();
     updateAutoTyperInfo();
     saveGameState();
+}
+function wpmToMillisecondsPerCharacter(wpm) {
+    const charactersPerMinute = wpm * 5;
+    return 60000 / charactersPerMinute;
 }
 
 class TypingBox {
     constructor(x, y, w, h, prompt, type = "sentence") {
-        this.x = x;
-        this.y = y;
-        this.spawnX = x;  // Save the spawn location
-        this.spawnY = y;
-        this.w = w;
-        this.h = h;
-        this.prompt = prompt;
-        this.type = type;
-        this.currentIndex = 0;
-        this.finished = false;
-        this.selected = false;
-        this.dragging = false;
-        this.offsetX = 0;
-        this.offsetY = 0;
-        this.promptPadding = 10;
-        this.maxPromptHeight = this.h - this.promptPadding * 2;
-        this.originalX = x;
-        this.originalY = y;
-        this.autoTyperActive = false;
+      this.x = x;
+      this.y = y;
+      this.spawnX = x;  // Save the spawn location
+      this.spawnY = y;
+      this.w = w;
+      this.h = h;
+      this.prompt = prompt;
+      this.type = type;
+      this.currentIndex = 0;
+      this.finished = false;
+      this.selected = false;
+      this.dragging = false;
+      this.offsetX = 0;
+      this.offsetY = 0;
+      this.promptPadding = 10;
+      this.maxPromptHeight = this.h - this.promptPadding * 2;
+      this.originalX = x;
+      this.originalY = y;
+      this.autoTyperActive = false;
     }
+  
+    // Adjust textSize based on type before doing word wrap.
     getWrappedLines(availableWidth) {
-        textSize(16);
-        let lines = [];
-        let currentLine = "";
-        let startIdx = 0;
-        for (let i = 0; i < this.prompt.length; i++) {
-            let ch = this.prompt.charAt(i);
-            let testLine = currentLine + ch;
-            if (textWidth(testLine) > availableWidth && currentLine !== "") {
-                lines.push({ line: currentLine, start: startIdx, end: i });
-                currentLine = ch;
-                startIdx = i;
+        if (this.type === "letter") {
+          // For letters, no wrapping is needed.
+          textSize(24);
+          return [{ line: this.prompt, start: 0, end: this.prompt.length }];
+        } else {
+          // For sentences, use a word-based wrapping algorithm.
+          textSize(20);
+          let words = this.prompt.split(" ");
+          let lines = [];
+          let currentLine = "";
+          let startIndex = 0;
+          let currentIndex = 0;
+          for (let i = 0; i < words.length; i++) {
+            let word = words[i];
+            // Determine candidate line with the new word.
+            let candidate = currentLine.length === 0 ? word : currentLine + " " + word;
+            if (textWidth(candidate) > availableWidth && currentLine.length > 0) {
+              // Push the current line and start a new one.
+              lines.push({ line: currentLine, start: startIndex, end: currentIndex - 1 });
+              currentLine = word;
+              startIndex = currentIndex;
             } else {
-                currentLine = testLine;
+              currentLine = candidate;
             }
+            currentIndex += word.length;
+            if (i < words.length - 1) {
+              // Account for the space.
+              currentIndex++;
+            }
+          }
+          lines.push({ line: currentLine, start: startIndex, end: this.prompt.length });
+          return lines;
         }
-        lines.push({ line: currentLine, start: startIdx, end: this.prompt.length });
-        return lines;
-    }
-    getCharPosition(index) {
-        textSize(16);
+      }
+      
+      getCharPosition(index) {
+        // Set font size based on type.
+        if (this.type === "sentence") {
+          textSize(20);
+        } else {
+          textSize(24);
+        }
         let availableWidth = this.w - 20;
         let lineHeight = textAscent() + textDescent() + 2;
         let lines = this.getWrappedLines(availableWidth);
         for (let i = 0; i < lines.length; i++) {
-            let { line, start, end } = lines[i];
-            if (index >= start && index <= end) {
-                let relativeIndex = index - start;
-                let xPos = textWidth(line.substring(0, relativeIndex));
-                let yPos = i * lineHeight;
-                return { x: xPos, y: yPos, lineHeight: lineHeight };
-            }
+          let { line, start, end } = lines[i];
+          if (index >= start && index <= end) {
+            let relativeIndex = index - start;
+            let xPos = textWidth(line.substring(0, relativeIndex));
+            let yPos = i * lineHeight;
+            return { x: xPos, y: yPos, lineHeight: lineHeight };
+          }
         }
         let lastLine = lines[lines.length - 1];
         return { x: textWidth(lastLine.line), y: (lines.length - 1) * lineHeight, lineHeight: lineHeight };
-    }
+      }
+  
     update() {
-        if (this.dragging) {
-            this.x = constrain(mouseX + this.offsetX, 0, width - this.w);
-            this.y = constrain(mouseY + this.offsetY, 0, height - this.h - 100);
-        }
-        // If the box's x is within the spawn area, mark it as inSpawnArea.
-        this.inSpawnArea = (this.x < spawnAreaWidth);
+      if (this.dragging) {
+        this.x = constrain(mouseX + this.offsetX, 0, width - this.w);
+        this.y = constrain(mouseY + this.offsetY, 0, height - this.h - 100);
+      }
+      // If the box's x is within the spawn area, mark it as inSpawnArea.
+      this.inSpawnArea = (this.x < spawnAreaWidth);
     }
-
+  
     display() {
-        stroke(this.selected ? color(255, 0, 0) : 0);
-        fill(255);
-        rect(this.x, this.y, this.w, this.h, 10);
-
-        noStroke();
+      // Change active (selected) box stroke to green.
+      stroke(this.selected ? color(0, 255, 0) : 0);
+      fill(255);
+      rect(this.x, this.y, this.w, this.h, 10);
+  
+      noStroke();
+      if (this.type === "letter") {
+        // Set font for letter and center the text.
+        textSize(24);
+        textAlign(CENTER, CENTER);
         fill(0);
-        textSize(16);
+        text(this.prompt, this.x + this.w / 2, this.y + this.h / 2);
+  
+        // Draw the highlight over the letter.
+        if (this.currentIndex < this.prompt.length) {
+          let letter = this.prompt;
+          let letterWidth = textWidth(letter);
+          let letterHeight = textAscent() + textDescent();
+          let centerX = this.x + this.w / 2;
+          let centerY = this.y + this.h / 2;
+          let highlightX = centerX - letterWidth / 2;
+          let highlightY = centerY - letterHeight / 2;
+          fill(this.selected ? color(0, 255, 0, 150) : color(255, 255, 0, 150));
+          rect(highlightX, highlightY, letterWidth, letterHeight);
+        }
+      } else {
+        // For sentence type, use left/top alignment and updated font size.
+        textSize(20);
         textAlign(LEFT, TOP);
         textWrap(WORD);
+        fill(0);
         text(this.prompt, this.x + 10, this.y + this.promptPadding, this.w - 20, this.maxPromptHeight);
-
+  
+        // Draw the highlight for the current character.
         if (this.currentIndex < this.prompt.length) {
-            let pos = this.getCharPosition(this.currentIndex);
-            let highlightX = this.x + 10 + pos.x;
-            let highlightY = this.y + this.promptPadding + pos.y;
-            let currentChar = this.prompt.charAt(this.currentIndex);
-            let charWidth = textWidth(currentChar);
-            noStroke();
-            fill(this.selected ? color(255, 0, 0, 150) : color(255, 255, 0, 150));
-            rect(highlightX, highlightY, charWidth, pos.lineHeight);
+          let pos = this.getCharPosition(this.currentIndex);
+          let highlightX = this.x + 10 + pos.x;
+          let highlightY = this.y + this.promptPadding + pos.y;
+          let currentChar = this.prompt.charAt(this.currentIndex);
+          let charWidth = textWidth(currentChar);
+          fill(this.selected ? color(0, 255, 0, 150) : color(255, 255, 0, 150));
+          rect(highlightX, highlightY, charWidth, pos.lineHeight);
         }
-
-        if (this.autoTyperActive) {
-            fill(0, 255, 0);
-            noStroke();
-            ellipse(this.x + this.w - 15, this.y + 15, 20, 20);
-            fill(0);
-            textSize(10);
-            textAlign(CENTER, CENTER);
-            text("AT", this.x + this.w - 15, this.y + 15);
-        }
+      }
+  
+      // Draw the auto typer badge if active.
+      if (this.autoTyperActive) {
+        fill(0, 255, 0);
+        noStroke();
+        ellipse(this.x + this.w - 15, this.y + 15, 20, 20);
+        fill(0);
+        textSize(10);
+        textAlign(CENTER, CENTER);
+        text("AT", this.x + this.w - 15, this.y + 15);
+      }
     }
+  
     pressed() {
-        // Only set dragging if we're not already dragging.
-        if (this.dragging) return;
-        if (mouseX > this.x && mouseX < this.x + this.w &&
-            mouseY > this.y && mouseY < this.y + this.h) {
-            this.dragging = true;
-            this.offsetX = this.x - mouseX;
-            this.offsetY = this.y - mouseY;
-            this.originalX = this.x;
-            this.originalY = this.y;
-        }
+      // Only set dragging if we're not already dragging.
+      if (this.dragging) return;
+      if (mouseX > this.x && mouseX < this.x + this.w &&
+          mouseY > this.y && mouseY < this.y + this.h) {
+        this.dragging = true;
+        this.offsetX = this.x - mouseX;
+        this.offsetY = this.y - mouseY;
+        this.originalX = this.x;
+        this.originalY = this.y;
+      }
     }
+  
     released() {
-        if (this.dragging) {
-            this.dragging = false;
-            let newX = this.x;
-            let newY = this.y;
-            let iterations = 0;
-            let moved = true;
-
-            // Only try collision resolution if dropped in the main board region.
-            if (newX >= spawnAreaWidth) {
-                while (moved && iterations < 20) {
-                    moved = false;
-                    for (let other of boxes) {
-                        if (other === this) continue;
-                        if (rectOverlap(newX, newY, this.w, this.h, other.x, other.y, other.w, other.h)) {
-                            let moveX = 0, moveY = 0;
-                            let overlapLeft = (newX + this.w) - other.x;
-                            let overlapRight = (other.x + other.w) - newX;
-                            let overlapTop = (newY + this.h) - other.y;
-                            let overlapBottom = (other.y + other.h) - newY;
-                            let minOverlap = Math.min(overlapLeft, overlapRight, overlapTop, overlapBottom);
-                            if (minOverlap === overlapLeft) {
-                                moveX = -overlapLeft;
-                            } else if (minOverlap === overlapRight) {
-                                moveX = overlapRight;
-                            } else if (minOverlap === overlapTop) {
-                                moveY = -overlapTop;
-                            } else if (minOverlap === overlapBottom) {
-                                moveY = overlapBottom;
-                            }
-                            if (Math.abs(moveX) < Math.abs(moveY)) {
-                                newX += moveX;
-                            } else {
-                                newY += moveY;
-                            }
-                            moved = true;
-                        }
-                    }
-                    iterations++;
+      if (this.dragging) {
+        this.dragging = false;
+        let newX = this.x;
+        let newY = this.y;
+        let iterations = 0;
+        let moved = true;
+  
+        // Only try collision resolution if dropped in the main board region.
+        if (newX >= spawnAreaWidth) {
+          while (moved && iterations < 20) {
+            moved = false;
+            for (let other of boxes) {
+              if (other === this) continue;
+              if (rectOverlap(newX, newY, this.w, this.h, other.x, other.y, other.w, other.h)) {
+                let moveX = 0, moveY = 0;
+                let overlapLeft = (newX + this.w) - other.x;
+                let overlapRight = (other.x + other.w) - newX;
+                let overlapTop = (newY + this.h) - other.y;
+                let overlapBottom = (other.y + other.h) - newY;
+                let minOverlap = Math.min(overlapLeft, overlapRight, overlapTop, overlapBottom);
+                if (minOverlap === overlapLeft) {
+                  moveX = -overlapLeft;
+                } else if (minOverlap === overlapRight) {
+                  moveX = overlapRight;
+                } else if (minOverlap === overlapTop) {
+                  moveY = -overlapTop;
+                } else if (minOverlap === overlapBottom) {
+                  moveY = overlapBottom;
                 }
-                // If the final position is still invalid, revert to where dragging started.
-                if (!this.boxIsValid(newX, newY)) {
-                    newX = this.originalX;
-                    newY = this.originalY;
+                if (Math.abs(moveX) < Math.abs(moveY)) {
+                  newX += moveX;
+                } else {
+                  newY += moveY;
                 }
-            } else {
-                // If dropped in the spawn area, bounce back to where dragging started.
-                newX = this.originalX;
-                newY = this.originalY;
+                moved = true;
+              }
             }
-
-            // Constrain within canvas and away from reserved auto typer area.
-            this.x = constrain(newX, 0, width - this.w);
-            this.y = constrain(newY, 0, height - this.h - 100);
+            iterations++;
+          }
+          // If the final position is still invalid, revert to where dragging started.
+          if (!this.boxIsValid(newX, newY)) {
+            newX = this.originalX;
+            newY = this.originalY;
+          }
+        } else {
+          // If dropped in the spawn area, bounce back to where dragging started.
+          newX = this.originalX;
+          newY = this.originalY;
         }
+  
+        // Constrain within canvas and away from reserved auto typer area.
+        this.x = constrain(newX, 0, width - this.w);
+        this.y = constrain(newY, 0, height - this.h - 100);
+      }
     }
-
+  
     boxIsValid(x, y) {
-        for (let b of boxes) {
-            if (b === this) continue;
-            if (rectOverlap(x, y, this.w, this.h, b.x, b.y, b.w, b.h)) return false;
-        }
-        return true;
+      for (let b of boxes) {
+        if (b === this) continue;
+        if (rectOverlap(x, y, this.w, this.h, b.x, b.y, b.w, b.h)) return false;
+      }
+      return true;
     }
+  
     reset() {
-        if (this.type === "sentence") {
-            this.prompt = getRandomPrompt();
-            this.maxPromptHeight = this.h - this.promptPadding * 2;
-        } else if (this.type === "letter") {
-            this.prompt = getRandomLetter();
-        }
-        this.currentIndex = 0;
-        this.finished = false;
+      if (this.type === "sentence") {
+        this.prompt = getRandomPrompt();
+        this.maxPromptHeight = this.h - this.promptPadding * 2;
+      } else if (this.type === "letter") {
+        this.prompt = getRandomLetter();
+      }
+      this.currentIndex = 0;
+      this.finished = false;
     }
-}
-
+  }
+  
 class AutoTyper {
     constructor(x, y) {
         this.x = x;
@@ -611,19 +726,22 @@ class AutoTyper {
         this.offsetY = 0;
         this.attachedBox = null;
         this.lastUpdateTime = millis();
-        this.typingInterval = 500; // Milliseconds per character
+
         // New properties for upgrades:
         this.wordPerMinute = 60; // default WPM
+        this.typingInterval = 120000 / this.wordPerMinute; // Milliseconds per character
+
         this.multiplier = 1.0;   // default multiplier
         this.level = 1;          // starting level
     }
     update() {
+        this.typingInterval = wpmToMillisecondsPerCharacter(this.wordPerMinute); // Milliseconds per character
         if (this.attachedBox) {
             // Sync badge with the attached box
             this.x = this.attachedBox.x + this.attachedBox.w - 15;
             this.y = this.attachedBox.y + 15;
             // If the attached box is selected, pause auto typing.
-            if (this.attachedBox.selected) return;
+            //if (this.attachedBox.selected) return;
             if (!this.attachedBox.finished) {
                 if (millis() - this.lastUpdateTime > this.typingInterval) {
                     if (this.attachedBox.currentIndex < this.attachedBox.prompt.length) {
@@ -666,7 +784,7 @@ class AutoTyper {
             updateAutoTyperInfo();
         }
         // Also allow dragging if not attached.
-        if (dist(mouseX, mouseY, this.x, this.y) < 15 && !this.attachedBox) {
+        if (dist(mouseX, mouseY, this.x, this.y) < 15 && !this.attachedBox) {1
             this.dragging = true;
             this.offsetX = this.x - mouseX;
             this.offsetY = this.y - mouseY;
