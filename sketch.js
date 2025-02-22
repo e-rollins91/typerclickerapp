@@ -528,7 +528,6 @@ function wpmToMillisecondsPerCharacter(wpm) {
     const charactersPerMinute = wpm * 5;
     return 60000 / charactersPerMinute;
 }
-
 class TypingBox {
     constructor(x, y, w, h, prompt, type = "sentence") {
       this.x = x;
@@ -767,8 +766,7 @@ class TypingBox {
       this.currentIndex = 0;
       this.finished = false;
     }
-  }
-  
+  }  
 class AutoTyper {
     constructor(x, y) {
         this.x = x;
@@ -820,8 +818,7 @@ class AutoTyper {
           this.x = mouseX + this.offsetX;
           this.y = mouseY + this.offsetY;
         }
-      }
-      
+      }     
     display() {
         if (!this.attachedBox) {
             fill(200, 200, 255);
