@@ -12,41 +12,12 @@ let autoTyperInfo; // We'll initialize this in setup()
 
 let sparks = [];
 
-class Spark {
-  constructor(x, y) {
-    this.x = x;
-    this.y = y;
-    // Random velocity in a slightly upward, outward direction.
-    this.vx = random(-1.5, 1.5);
-    this.vy = random(-2.5, -0.5);
-    this.lifetime = 255;
-    // You can adjust the color if you wish.
-    this.col = color(255, 215, 0); // A golden spark
-    this.size = random(3, 6);
-  }
-  
-  update() {
-    this.x += this.vx;
-    this.y += this.vy;
-    this.lifetime -= 5;
-  }
-  
-  display() {
-    noStroke();
-    fill(red(this.col), green(this.col), blue(this.col), this.lifetime);
-    ellipse(this.x, this.y, this.size, this.size);
-  }
-  
-  isFinished() {
-    return this.lifetime <= 0;
-  }
-}
-
 
 // Sample dictionary for sentences
 const dictionary = [
     "The quick brown fox jumps over the lazy dog",
     "Hello world",
+
     "Typing is fun",
     "Grok helps me code",
     "Random text here",
@@ -61,8 +32,7 @@ function spawnSparks(x, y, w, h) {
       let sparkY = random(y, y + h);
       sparks.push(new Spark(sparkX, sparkY));
     }
-  }
-  
+}  
 function setup() {
 
     // Create a centered 1200x800 canvas
@@ -212,7 +182,6 @@ function loadGameState() {
         console.error("Error loading game state: ", e);
     }
 }
-
 function getRandomPrompt() {
     return dictionary[Math.floor(Math.random() * dictionary.length)];
 }
@@ -268,8 +237,7 @@ function draw() {
       at.update();
       at.display();
     }
-  }
-  
+}
 function mousePressed() {
     if (mouseButton === RIGHT) {
         handleRightClick(mouseX, mouseY);
@@ -323,8 +291,7 @@ function keyPressed() {
       }
     }
     return false;
-  }
-  
+}
 function handleRightClick(x, y) {
     activeBox = null;
     for (let box of boxes) {
@@ -861,4 +828,33 @@ class AutoTyper {
             }
         }
     }
+}
+class Spark {
+  constructor(x, y) {
+    this.x = x;
+    this.y = y;
+    // Random velocity in a slightly upward, outward direction.
+    this.vx = random(-1.5, 1.5);
+    this.vy = random(-2.5, -0.5);
+    this.lifetime = 255;
+    // You can adjust the color if you wish.
+    this.col = color(255, 215, 0); // A golden spark
+    this.size = random(3, 6);
+  }
+  
+  update() {
+    this.x += this.vx;
+    this.y += this.vy;
+    this.lifetime -= 5;
+  }
+  
+  display() {
+    noStroke();
+    fill(red(this.col), green(this.col), blue(this.col), this.lifetime);
+    ellipse(this.x, this.y, this.size, this.size);
+  }
+  
+  isFinished() {
+    return this.lifetime <= 0;
+  }
 }
