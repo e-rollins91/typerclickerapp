@@ -10,6 +10,38 @@ const spawnAreaHeight = 700;
 let activeAutoTyper = null;
 let autoTyperInfo; // We'll initialize this in setup()
 
+let sparks = [];
+
+class Spark {
+  constructor(x, y) {
+    this.x = x;
+    this.y = y;
+    // Random velocity in a slightly upward, outward direction.
+    this.vx = random(-1.5, 1.5);
+    this.vy = random(-2.5, -0.5);
+    this.lifetime = 255;
+    // You can adjust the color if you wish.
+    this.col = color(255, 215, 0); // A golden spark
+    this.size = random(3, 6);
+  }
+  
+  update() {
+    this.x += this.vx;
+    this.y += this.vy;
+    this.lifetime -= 5;
+  }
+  
+  display() {
+    noStroke();
+    fill(red(this.col), green(this.col), blue(this.col), this.lifetime);
+    ellipse(this.x, this.y, this.size, this.size);
+  }
+  
+  isFinished() {
+    return this.lifetime <= 0;
+  }
+}
+
 
 // Sample dictionary for sentences
 const dictionary = [
@@ -21,7 +53,16 @@ const dictionary = [
     "Snap those boxes",
     "Click and type",
 ];
-
+function spawnSparks(x, y, w, h) {
+    const numSparks = 20; // Adjust number of sparks as desired.
+    for (let i = 0; i < numSparks; i++) {
+      // Spawn sparks randomly within the box boundaries.
+      let sparkX = random(x, x + w);
+      let sparkY = random(y, y + h);
+      sparks.push(new Spark(sparkX, sparkY));
+    }
+  }
+  
 function setup() {
 
     // Create a centered 1200x800 canvas
@@ -181,46 +222,54 @@ function getRandomLetter() {
 }
 function draw() {
     background(230);
-  
-    // Draw spawn area on left (300x300)
+    
+    // Draw spawn area on left.
     noStroke();
     fill(220);
     rect(0, 0, spawnAreaWidth, spawnAreaHeight);
     
-    // Draw "STASH" vertically (all caps) in dark dark grey in the spawn area
+    // Draw "STASH" vertically in the spawn area.
     push();
       textAlign(CENTER, CENTER);
-      textSize(100); // Adjust as needed for a large font that fills the area
-      fill(85);      // Dark dark grey
-      // Move to the center of the spawn area
+      textSize(100);
+      fill(85);
       translate(spawnAreaWidth/2, spawnAreaHeight/2);
-      // Rotate so that the text goes vertically from top to bottom
       rotate(-HALF_PI);
       text("STASH", 0, 0);
     pop();
     
-    // Draw auto typer area (bottom 100px)
+    // Draw auto typer area.
     fill(200);
     rect(0, height - 100, width, 100);
     
-    // Draw "TYPERS" horizontally in the center of the bottom area
+    // Draw "TYPERS" in the auto typer area.
     push();
       textAlign(CENTER, CENTER);
-      textSize(80);  // Large font; adjust as needed
-      fill(85);      // Dark dark grey
-      text("AUTO TYPERS", width/2, height - 50);
+      textSize(80);
+      fill(85);
+      text("TYPERS", width/2, height - 50);
     pop();
-  
-    // Now draw boxes and auto typers
+    
+    // Update and display sparks (draw these first so they appear behind boxes).
+    for (let i = sparks.length - 1; i >= 0; i--) {
+      sparks[i].update();
+      sparks[i].display();
+      if (sparks[i].isFinished()) {
+        sparks.splice(i, 1);
+      }
+    }
+    
+    // Draw boxes and auto typers.
     for (let box of boxes) {
-        box.update();
-        box.display();
+      box.update();
+      box.display();
     }
     for (let at of autoTypers) {
-        at.update();
-        at.display();
+      at.update();
+      at.display();
     }
   }
+  
 function mousePressed() {
     if (mouseButton === RIGHT) {
         handleRightClick(mouseX, mouseY);
@@ -254,25 +303,28 @@ function mouseReleased() {
 }
 function keyPressed() {
     if (activeBox && !activeBox.inSpawnArea && activeBox.currentIndex < activeBox.prompt.length) {
-        let expected = activeBox.prompt.charAt(activeBox.currentIndex);
-        if (key === expected) {
-            activeBox.currentIndex++;
-            if (activeBox.currentIndex === activeBox.prompt.length && !activeBox.finished) {
-                activeBox.finished = true;
-                let reward = 0;
-                if (activeBox.type === "sentence") {
-                    reward = activeBox.prompt.length * sentenceModifier;
-                } else if (activeBox.type === "letter") {
-                    reward = 1;
-                }
-                points += reward;
-                updateScoreDisplay();
-                activeBox.reset();
-            }
+      let expected = activeBox.prompt.charAt(activeBox.currentIndex);
+      if (key === expected) {
+        activeBox.currentIndex++;
+        if (activeBox.currentIndex === activeBox.prompt.length && !activeBox.finished) {
+          activeBox.finished = true;
+          let reward = 0;
+          if (activeBox.type === "sentence") {
+            reward = activeBox.prompt.length * sentenceModifier;
+          } else if (activeBox.type === "letter") {
+            reward = 1;
+          }
+          points += reward;
+          updateScoreDisplay();
+          // Spawn spark animation behind the finished box.
+          spawnSparks(activeBox.x, activeBox.y, activeBox.w, activeBox.h);
+          activeBox.reset();
         }
+      }
     }
     return false;
-}
+  }
+  
 function handleRightClick(x, y) {
     activeBox = null;
     for (let box of boxes) {
@@ -735,35 +787,41 @@ class AutoTyper {
         this.level = 1;          // starting level
     }
     update() {
-        this.typingInterval = wpmToMillisecondsPerCharacter(this.wordPerMinute); // Milliseconds per character
         if (this.attachedBox) {
-            // Sync badge with the attached box
-            this.x = this.attachedBox.x + this.attachedBox.w - 15;
-            this.y = this.attachedBox.y + 15;
-            // If the attached box is selected, pause auto typing.
-            //if (this.attachedBox.selected) return;
-            if (!this.attachedBox.finished) {
-                if (millis() - this.lastUpdateTime > this.typingInterval) {
-                    if (this.attachedBox.currentIndex < this.attachedBox.prompt.length) {
-                        this.attachedBox.currentIndex++;
-                    } else {
-                        this.attachedBox.finished = true;
-                        if (this.attachedBox.type === "sentence") {
-                            points += this.attachedBox.prompt.length * sentenceModifier;
-                        } else if (this.attachedBox.type === "letter") {
-                            points += 1;
-                        }
-                        updateScoreDisplay();
-                        this.attachedBox.reset();
-                    }
-                    this.lastUpdateTime = millis();
+          // Sync auto typer's position with the attached box.
+          this.x = this.attachedBox.x + this.attachedBox.w - 15;
+          this.y = this.attachedBox.y + 15;
+          
+          // If the attached box isn't finished, continue auto typing.
+          if (!this.attachedBox.finished) {
+            if (millis() - this.lastUpdateTime > this.typingInterval) {
+              if (this.attachedBox.currentIndex < this.attachedBox.prompt.length) {
+                this.attachedBox.currentIndex++;
+              } else {
+                // Box is complete.
+                this.attachedBox.finished = true;
+                // Award points.
+                if (this.attachedBox.type === "sentence") {
+                  points += this.attachedBox.prompt.length * sentenceModifier;
+                } else if (this.attachedBox.type === "letter") {
+                  points += 1;
                 }
+                updateScoreDisplay();
+                // Spawn spark animation behind the finished box.
+                spawnSparks(this.attachedBox.x, this.attachedBox.y, this.attachedBox.w, this.attachedBox.h);
+                // Reset the box so it can start over.
+                this.attachedBox.reset();
+              }
+              this.lastUpdateTime = millis();
             }
+          }
         } else if (this.dragging) {
-            this.x = mouseX + this.offsetX;
-            this.y = mouseY + this.offsetY;
+          // Update position while dragging.
+          this.x = mouseX + this.offsetX;
+          this.y = mouseY + this.offsetY;
         }
-    }
+      }
+      
     display() {
         if (!this.attachedBox) {
             fill(200, 200, 255);
