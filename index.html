@@ -9,7 +9,9 @@
 </head>
 <body>
   <!-- Score Display -->
-  <div id="scoreDisplay"></div>
+<div id="scoreDisplay"></div>
+<div id="playerWPM" style="position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 10; background: #fff; padding: 5px 10px; border: 1px solid #333; border-radius: 5px;"></div>
+
 
   <!-- Shop Icon (always visible at top left) -->
   <div id="shopIcon">🛒</div>
@@ -27,6 +29,7 @@
         <button id="addSentenceBtn">Add Sentence (25 points)</button>
         <button id="addLetterBtn">Add Letter (1 point)</button>
         <button id="buyAutoTyperBtn">Buy AutoTyper (10 points)</button>
+        <button id="flatIncreaseBtn"?>Sentence Mult +.01 (10 points)</button>
       </div>
     </div>
   </div>
@@ -39,7 +42,7 @@
     <h3>Auto Typer Info <span id="atLevel" style="float:right; font-size: 0.8em;">Level: 1</span></h3>
     <p id="atWPM">WPM: </p>
     <p id="atMultiplier">Multiplier: </p>
-    <button id="upgradeATBtn">Upgrade WPM (+1)</button>
+    <button id="upgradeATBtn">WPM +1 [Cost: 10]</button>
     <button id="detachATBtn">Detach AutoTyper</button>
   </div>
 

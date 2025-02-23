@@ -1,15 +1,16 @@
 // Global variables
 let boxes = [];
 let activeBox = null;
-let points = 10;
+let points = 15;
 let scoreDisplay;
 let autoTypers = [];
-let sentenceModifier = 1.25; // Global sentence modifier
+let sentenceModifier = 1.01; // Global sentence modifier
 const spawnAreaWidth = 300;
 const spawnAreaHeight = 700;
 let activeAutoTyper = null;
 let autoTyperInfo; // We'll initialize this in setup()
 let sparks = [];
+let typingTimestamps = [];
 
 // shop setup 
 document.addEventListener("DOMContentLoaded", () => {
@@ -269,7 +270,7 @@ function draw() {
       fill(85);
       text("TYPERS", width/2, height - 50);
     pop();
-    
+    updatePlayerWPM();
     // Update and display sparks (draw these first so they appear behind boxes).
     for (let i = sparks.length - 1; i >= 0; i--) {
       sparks[i].update();
@@ -289,7 +290,13 @@ function draw() {
       at.display();
     }
 }
-function mousePressed() {
+function mousePressed(event) {
+  // Only run this logic if the click target is the canvas.
+  // Your canvas has the id "gameCanvas" (set in setup()).
+  if (event.target.id !== "gameCanvas") {
+    return; // Exit if the click was on a DOM element like a button.
+  }
+
   if (mouseButton === RIGHT) {
     handleRightClick(mouseX, mouseY);
   } else if (mouseButton === LEFT) {
@@ -321,7 +328,34 @@ function mousePressed() {
     }
   }
 }
-
+function updatePlayerWPM() {
+  let now = millis();
+  
+  // Remove any keystrokes older than 3 seconds.
+  while (typingTimestamps.length > 0 && now - typingTimestamps[0] > 3000) {
+    typingTimestamps.shift();
+  }
+  
+  let wpm = 0;
+  if (typingTimestamps.length > 0) {
+    // Use the difference between the most recent and the oldest keystroke in the window.
+    let timeInterval = now - typingTimestamps[0];
+    // Prevent division by zero or extremely low time interval.
+    timeInterval = max(timeInterval, 100); 
+    
+    // Characters per minute: (# keystrokes / active time in minutes)
+    let cpm = typingTimestamps.length / (timeInterval / 60000);
+    // Convert characters per minute to words per minute (assuming 5 characters per word)
+    wpm = cpm / 5;
+  }
+  
+  // Update a DOM element to display the player's WPM.
+  // Make sure your HTML includes an element with id "playerWPM".
+  let wpmDisplay = select("#playerWPM");
+  if (wpmDisplay) {
+    wpmDisplay.html("Player WPM: " + wpm.toFixed(1));
+  }
+}
 function mouseReleased() {
     if (mouseButton === LEFT) {
         for (let box of boxes) {
@@ -333,27 +367,27 @@ function mouseReleased() {
     }
 }
 function keyPressed() {
-    if (activeBox && !activeBox.inSpawnArea && activeBox.currentIndex < activeBox.prompt.length) {
-      let expected = activeBox.prompt.charAt(activeBox.currentIndex);
-      if (key === expected) {
-        activeBox.currentIndex++;
-        if (activeBox.currentIndex === activeBox.prompt.length && !activeBox.finished) {
-          activeBox.finished = true;
-          let reward = 0;
-          if (activeBox.type === "sentence") {
-            reward = activeBox.prompt.length * sentenceModifier;
-          } else if (activeBox.type === "letter") {
-            reward = 1;
-          }
-          points += reward;
-          updateScoreDisplay();
-          // Spawn spark animation behind the finished box.
-          spawnSparks(activeBox.x, activeBox.y, activeBox.w, activeBox.h);
-          activeBox.reset();
-        }
+  if (activeBox && !activeBox.inSpawnArea && activeBox.currentIndex < activeBox.prompt.length) {
+    let expected = activeBox.prompt.charAt(activeBox.currentIndex);
+    if (key === expected) {
+      activeBox.currentIndex++;
+      // Record this keypress time
+      typingTimestamps.push(millis());
+      
+      if (activeBox.currentIndex === activeBox.prompt.length && !activeBox.finished) {
+        activeBox.finished = true;
+        let reward = (activeBox.type === "sentence")
+            ? activeBox.prompt.length * sentenceModifier
+            : 1;
+        points += reward;
+        updateScoreDisplay();
+        spawnSparks(activeBox.x, activeBox.y, activeBox.w, activeBox.h);
+        activeBox.reset();
+        saveGameState();
       }
     }
-    return false;
+  }
+  return false;
 }
 function handleRightClick(x, y) {
     activeBox = null;
@@ -546,7 +580,7 @@ function upgradeActiveAutoTyper() {
     activeAutoTyper.level++;
     // Increase stats; you can tweak these values as desired.
     activeAutoTyper.wordPerMinute += 1;  // Increase WPM by 10
-    activeAutoTyper.multiplier += 0.1;      // Increase multiplier by 0.1
+    //activeAutoTyper.multiplier += 0.1;      // Increase multiplier by 0.1
     // Optionally, you could also decrease its typing interval if you want it to type faster.
     // activeAutoTyper.typingInterval = max(activeAutoTyper.typingInterval - 50, 100);
     points -= 10;
@@ -809,7 +843,8 @@ class AutoTyper {
 
     // New properties for upgrades:
     this.wordPerMinute = 5; // default WPM
-    this.typingInterval = 12000 / this.wordPerMinute; // Milliseconds per character
+    this.typingInterval = 60000 / (this.wordPerMinute * 5);
+
 
     this.multiplier = 1.0;   // default multiplier
     this.level = 1;          // starting level
@@ -907,7 +942,6 @@ class AutoTyper {
     }
   }
 }
-
 class Spark {
   constructor(x, y) {
     this.x = x;
