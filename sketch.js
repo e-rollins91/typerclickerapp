@@ -9,7 +9,6 @@ const spawnAreaWidth = 300;
 const spawnAreaHeight = 700;
 let activeAutoTyper = null;
 let autoTyperInfo; // We'll initialize this in setup()
-
 let sparks = [];
 
 
@@ -24,6 +23,7 @@ const dictionary = [
     "Snap those boxes",
     "Click and type",
 ];
+//
 function spawnSparks(x, y, w, h) {
     const numSparks = 20; // Adjust number of sparks as desired.
     for (let i = 0; i < numSparks; i++) {
