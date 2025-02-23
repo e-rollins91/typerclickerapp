@@ -1,31 +1,49 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <title>Typing Clicker Game</title>
-    <link rel="stylesheet" href="style.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.6.0/p5.min.js"></script>
-    <script src="sketch.js" defer></script>
+  <meta charset="UTF-8" />
+  <title>Typing Clicker Game</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.6.0/p5.min.js"></script>
+  <script src="sketch.js" defer></script>
 </head>
 <body>
-    <div id="scoreDisplay"></div>
-    <div id="controls">
+  <!-- Score Display -->
+  <div id="scoreDisplay"></div>
+
+  <!-- Shop Icon (always visible at top left) -->
+  <div id="shopIcon">🛒</div>
+
+  <!-- Draggable Shop Modal -->
+  <div id="shopModal" class="modal">
+    <div class="modal-content" id="modalContent">
+      <!-- Shop Header (drag handle) -->
+      <div class="shop-header" id="shopHeader">
+        <span id="closeModal" class="close">&times;</span>
+        <h2>Shop</h2>
+      </div>
+      <!-- Shop Controls -->
+      <div id="controls">
         <button id="addSentenceBtn">Add Sentence (25 points)</button>
         <button id="addLetterBtn">Add Letter (1 point)</button>
         <button id="buyAutoTyperBtn">Buy AutoTyper (10 points)</button>
-        <!--   <button id="flatIncreaseBtn">Flat Increase (+0.01) (10 pts)</button>
-        <button id="percentIncreaseBtn">Percent Increase (+1%) (100 pts)</button>  -->
+      </div>
     </div>
-    <div id="statMeter">Sentence Modifier: 1.25</div>
-    <div id="autoTyperInfo" class="infoPanel">
-        <h3>Auto Typer Info <span id="atLevel" style="float:right; font-size: 0.8em;">Level: 1</span></h3>
-        <p id="atWPM">WPM: </p>
-        <p id="atMultiplier">Multiplier: </p>
-        <button id="upgradeATBtn">Upgrade WPM (+1)</button>
-        <button id="detachATBtn">Detach AutoTyper</button>
-    </div>
+  </div>
 
-    <button id="resetGameBtn" style="position: fixed; bottom: 20px; left: 20px; z-index:10;">Reset Game</button>
+  <!-- Stat Meter -->
+  <div id="statMeter">Sentence Modifier: 1.25</div>
 
+  <!-- AutoTyper Info Panel -->
+  <div id="autoTyperInfo" class="infoPanel">
+    <h3>Auto Typer Info <span id="atLevel" style="float:right; font-size: 0.8em;">Level: 1</span></h3>
+    <p id="atWPM">WPM: </p>
+    <p id="atMultiplier">Multiplier: </p>
+    <button id="upgradeATBtn">Upgrade WPM (+1)</button>
+    <button id="detachATBtn">Detach AutoTyper</button>
+  </div>
+
+  <!-- Reset Game Button -->
+  <button id="resetGameBtn" style="position: fixed; bottom: 20px; left: 20px; z-index:10;">Reset Game</button>
 </body>
 </html>

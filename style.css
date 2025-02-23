@@ -8,25 +8,77 @@ canvas#gameCanvas {
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
 }
 
-/* Container for our three buttons */
-#controls {
+/* Shop Icon styling */
+#shopIcon {
     position: fixed;
     top: 20px;
     left: 20px;
-    z-index: 10;
+    font-size: 24px;
+    cursor: pointer;
+    z-index: 100; /* above canvas */
+}
+
+/* Modal (shop overlay) styling */
+.modal {
+    display: none; /* hidden by default */
+    position: fixed;
+    z-index: 500;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+/* Modal content box with absolute positioning */
+.modal-content {
+    position: absolute;
+    width: 300px;
+    background-color: #fff;
+    border: 1px solid #333;
+    border-radius: 10px;
+    /* Initially center the modal */
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+}
+
+/* Drag handle styling */
+.shop-header {
+    cursor: move;
+    background-color: #f1f1f1;
+    padding: 10px;
+    border-bottom: 1px solid #ccc;
+}
+
+/* Close button styling remains the same */
+.close {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+/* Container for our three buttons */
+#controls {
     display: flex;
+    flex-direction: column;
     gap: 10px;
 }
 
-    /* Shared button styling */
-    #controls button {
-        padding: 10px 20px;
-        font-size: 16px;
-        background-color: #fff;
-        border: 1px solid #333;
-        border-radius: 5px;
-        cursor: pointer;
-    }
+/* Shared button styling */
+#controls button {
+    padding: 10px 20px;
+    font-size: 16px;
+    background-color: #fff;
+    border: 1px solid #333;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+/* Existing styles for other elements remain unchanged */
 #autoTyperInfo button {
     margin-top: 10px;
     padding: 5px 10px;
@@ -46,7 +98,6 @@ canvas#gameCanvas {
     font-family: sans-serif;
 }
 
-/* Stat meter positioned at the top right */
 #statMeter {
     position: fixed;
     top: 20px;

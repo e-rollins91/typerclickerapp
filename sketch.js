@@ -11,12 +11,63 @@ let activeAutoTyper = null;
 let autoTyperInfo; // We'll initialize this in setup()
 let sparks = [];
 
+// shop setup 
+document.addEventListener("DOMContentLoaded", () => {
+  const modalContent = document.getElementById("modalContent");
+  const shopHeader = document.getElementById("shopHeader");
+  const shopIcon = document.getElementById("shopIcon");
+  const shopModal = document.getElementById("shopModal");
+  const closeModal = document.getElementById("closeModal");
+
+  let isDragging = false;
+  let offsetX, offsetY;
+
+  // Open shop modal when clicking the shop icon
+  shopIcon.addEventListener("click", () => {
+    shopModal.style.display = "block";
+  });
+
+  // Close shop modal when clicking the close button
+  closeModal.addEventListener("click", () => {
+    shopModal.style.display = "none";
+  });
+
+  // Handle dragging: when the mouse is pressed on the header, start tracking.
+  shopHeader.addEventListener("mousedown", (e) => {
+    isDragging = true;
+    // Calculate the offset between mouse position and modal top-left.
+    offsetX = e.clientX - modalContent.offsetLeft;
+    offsetY = e.clientY - modalContent.offsetTop;
+  });
+
+  // When moving the mouse, if dragging, update the modal position.
+  document.addEventListener("mousemove", (e) => {
+    if (isDragging) {
+      modalContent.style.left = (e.clientX - offsetX) + "px";
+      modalContent.style.top = (e.clientY - offsetY) + "px";
+      // Remove centering transform while dragging
+      modalContent.style.transform = "";
+    }
+  });
+
+  // Stop dragging when the mouse button is released.
+  document.addEventListener("mouseup", () => {
+    isDragging = false;
+  });
+
+  // Optional: close modal if user clicks outside the content area.
+  window.addEventListener("click", (e) => {
+    if (e.target === shopModal) {
+      shopModal.style.display = "none";
+    }
+  });
+});
+
 
 // Sample dictionary for sentences
 const dictionary = [
     "The quick brown fox jumps over the lazy dog",
     "Hello world",
-
     "Typing is fun",
     "Grok helps me code",
     "Random text here",
@@ -419,7 +470,7 @@ function detachActiveAutoTyper() {
     activeAutoTyper.x = 50 + unattachedCount * gap;
     activeAutoTyper.y = height - 30; // Snap to the designated auto typer area.
     updateAutoTyperInfo();
-  }
+}
 function buyFlatIncrease() {
     if (points >= 10) {
         points -= 10;
@@ -733,102 +784,118 @@ class TypingBox {
       this.currentIndex = 0;
       this.finished = false;
     }
-  }  
+}  
 class AutoTyper {
-    constructor(x, y) {
-        this.x = x;
-        this.y = y;
-        this.dragging = false;
-        this.offsetX = 0;
-        this.offsetY = 0;
-        this.attachedBox = null;
-        this.lastUpdateTime = millis();
+  constructor(x, y) {
+    this.x = x;
+    this.y = y;
+    this.dragging = false;
+    this.offsetX = 0;
+    this.offsetY = 0;
+    this.attachedBox = null;
+    this.lastUpdateTime = millis();
 
-        // New properties for upgrades:
-        this.wordPerMinute = 60; // default WPM
-        this.typingInterval = 120000 / this.wordPerMinute; // Milliseconds per character
+    // New properties for upgrades:
+    this.wordPerMinute = 60; // default WPM
+    this.typingInterval = 120000 / this.wordPerMinute; // Milliseconds per character
 
-        this.multiplier = 1.0;   // default multiplier
-        this.level = 1;          // starting level
-    }
-    update() {
-        if (this.attachedBox) {
-          // Sync auto typer's position with the attached box.
-          this.x = this.attachedBox.x + this.attachedBox.w - 15;
-          this.y = this.attachedBox.y + 15;
-          
-          // If the attached box isn't finished, continue auto typing.
-          if (!this.attachedBox.finished) {
-            if (millis() - this.lastUpdateTime > this.typingInterval) {
-              if (this.attachedBox.currentIndex < this.attachedBox.prompt.length) {
-                this.attachedBox.currentIndex++;
-              } else {
-                // Box is complete.
-                this.attachedBox.finished = true;
-                // Award points.
-                if (this.attachedBox.type === "sentence") {
-                  points += this.attachedBox.prompt.length * sentenceModifier;
-                } else if (this.attachedBox.type === "letter") {
-                  points += 1;
-                }
-                updateScoreDisplay();
-                // Spawn spark animation behind the finished box.
-                spawnSparks(this.attachedBox.x, this.attachedBox.y, this.attachedBox.w, this.attachedBox.h);
-                // Reset the box so it can start over.
-                this.attachedBox.reset();
-              }
-              this.lastUpdateTime = millis();
+    this.multiplier = 1.0;   // default multiplier
+    this.level = 1;          // starting level
+  }
+  
+  update() {
+    if (this.attachedBox) {
+      // Sync auto typer's position with the attached box.
+      this.x = this.attachedBox.x + this.attachedBox.w - 15;
+      this.y = this.attachedBox.y + 15;
+      
+      // If the attached box isn't finished, continue auto typing.
+      if (!this.attachedBox.finished) {
+        if (millis() - this.lastUpdateTime > this.typingInterval) {
+          if (this.attachedBox.currentIndex < this.attachedBox.prompt.length) {
+            this.attachedBox.currentIndex++;
+          } else {
+            // Box is complete.
+            this.attachedBox.finished = true;
+            if (this.attachedBox.type === "sentence") {
+              points += this.attachedBox.prompt.length * sentenceModifier;
+            } else if (this.attachedBox.type === "letter") {
+              points += 1;
             }
+            updateScoreDisplay();
+            spawnSparks(this.attachedBox.x, this.attachedBox.y, this.attachedBox.w, this.attachedBox.h);
+            this.attachedBox.reset();
           }
-        } else if (this.dragging) {
-          // Update position while dragging.
-          this.x = mouseX + this.offsetX;
-          this.y = mouseY + this.offsetY;
+          this.lastUpdateTime = millis();
         }
-      }     
-    display() {
-        if (!this.attachedBox) {
-            fill(200, 200, 255);
-            stroke(0);
-            ellipse(this.x, this.y, 30, 30);
-            fill(0);
-            textSize(12);
-            textAlign(CENTER, CENTER);
-            text("AT", this.x, this.y);
-        } else {
-            // When attached, its badge is drawn in the box's display() method.
-        }
+      }
+    } else if (this.dragging) {
+      this.x = mouseX + this.offsetX;
+      this.y = mouseY + this.offsetY;
     }
-    pressed() {
-        // If clicking within the auto typer, select it.
-        if (dist(mouseX, mouseY, this.x, this.y) < 15) {
-            activeAutoTyper = this;
-            updateAutoTyperInfo();
-        }
-        // Also allow dragging if not attached.
-        if (dist(mouseX, mouseY, this.x, this.y) < 15 && !this.attachedBox) {1
-            this.dragging = true;
-            this.offsetX = this.x - mouseX;
-            this.offsetY = this.y - mouseY;
-        }
+  }
+  
+  display() {
+    push(); // Save the current drawing state
+    if (!this.attachedBox) {
+      // Check if this auto typer is selected.
+      if (activeAutoTyper === this) {
+        stroke(255, 0, 0); // Red outline for selected
+        strokeWeight(4);
+      } else {
+        stroke(0);
+        strokeWeight(1);
+      }
+      fill(200, 200, 255);
+      ellipse(this.x, this.y, 30, 30);
+      fill(0);
+      textSize(12);
+      textAlign(CENTER, CENTER);
+      text("AT", this.x, this.y);
+    } else {
+      // When attached, its badge is drawn in the box's display() method.
+      // If this auto typer is selected, add an extra highlight.
+      if (activeAutoTyper === this) {
+        stroke(255, 0, 0);
+        strokeWeight(4);
+        noFill();
+        ellipse(this.x, this.y, 34, 34); // slightly larger than the badge
+      }
     }
-    released() {
-        if (this.dragging) {
-            this.dragging = false;
-            for (let box of boxes) {
-                if (!box.autoTyperActive &&
-                    mouseX > box.x && mouseX < box.x + box.w &&
-                    mouseY > box.y && mouseY < box.y + box.h) {
-                    this.attachedBox = box;
-                    box.autoTyperActive = true;
-                    this.x = box.x + box.w - 15;
-                    this.y = box.y + 15;
-                    break;
-                }
-            }
-        }
+    pop(); // Restore the drawing state so that other elements aren't affected
+  }
+  
+  
+  pressed() {
+    if (dist(mouseX, mouseY, this.x, this.y) < 15) {
+      activeAutoTyper = this;
+      updateAutoTyperInfo();
     }
+    if (dist(mouseX, mouseY, this.x, this.y) < 15 && !this.attachedBox) {
+      this.dragging = true;
+      this.offsetX = this.x - mouseX;
+      this.offsetY = this.y - mouseY;
+    }
+  }
+  
+  released() {
+    if (this.dragging) {
+      this.dragging = false;
+      for (let box of boxes) {
+        if (!box.autoTyperActive &&
+            mouseX > box.x && mouseX < box.x + box.w &&
+            mouseY > box.y && mouseY < box.y + box.h) {
+          this.attachedBox = box;
+          box.autoTyperActive = true;
+          this.x = box.x + box.w - 15;
+          this.y = box.y + 15;
+          break;
+        }
+      }
+    }
+  }
 }
+
 class Spark {
   constructor(x, y) {
     this.x = x;
