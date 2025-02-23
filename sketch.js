@@ -290,26 +290,38 @@ function draw() {
     }
 }
 function mousePressed() {
-    if (mouseButton === RIGHT) {
-        handleRightClick(mouseX, mouseY);
-    } else if (mouseButton === LEFT) {
-        // First check if the click is on any auto typer.
-        let clickedOnAutoTyper = false;
-        for (let at of autoTypers) {
-            if (dist(mouseX, mouseY, at.x, at.y) < 15) {
-                clickedOnAutoTyper = true;
-                at.pressed(); // Let the auto typer handle its own pressed logic.
-                break;
-            }
-        }
-       
-        
-        // Also allow boxes to be dragged.
-        for (let box of boxes) {
-            box.pressed();
-        }
+  if (mouseButton === RIGHT) {
+    handleRightClick(mouseX, mouseY);
+  } else if (mouseButton === LEFT) {
+    // First check if the click is on any auto typer.
+    let clickedOnAutoTyper = false;
+    for (let at of autoTypers) {
+      if (dist(mouseX, mouseY, at.x, at.y) < 15) {
+        clickedOnAutoTyper = true;
+        at.pressed(); // Let the auto typer handle its own pressed logic.
+        break;
+      }
     }
+    
+    // Also check if the click is on any box.
+    let clickedOnBox = false;
+    for (let box of boxes) {
+      if (mouseX > box.x && mouseX < box.x + box.w &&
+          mouseY > box.y && mouseY < box.y + box.h) {
+        box.pressed();
+        clickedOnBox = true;
+      }
+    }
+    
+    // If the click didn't land on an auto typer or a box,
+    // then clear the active auto typer (hiding its info panel).
+    if (!clickedOnAutoTyper && !clickedOnBox) {
+      activeAutoTyper = null;
+      updateAutoTyperInfo();
+    }
+  }
 }
+
 function mouseReleased() {
     if (mouseButton === LEFT) {
         for (let box of boxes) {
@@ -533,7 +545,7 @@ function upgradeActiveAutoTyper() {
     // Increase level by 1
     activeAutoTyper.level++;
     // Increase stats; you can tweak these values as desired.
-    activeAutoTyper.wordPerMinute += 10;  // Increase WPM by 10
+    activeAutoTyper.wordPerMinute += 1;  // Increase WPM by 10
     activeAutoTyper.multiplier += 0.1;      // Increase multiplier by 0.1
     // Optionally, you could also decrease its typing interval if you want it to type faster.
     // activeAutoTyper.typingInterval = max(activeAutoTyper.typingInterval - 50, 100);
@@ -796,8 +808,8 @@ class AutoTyper {
     this.lastUpdateTime = millis();
 
     // New properties for upgrades:
-    this.wordPerMinute = 60; // default WPM
-    this.typingInterval = 120000 / this.wordPerMinute; // Milliseconds per character
+    this.wordPerMinute = 5; // default WPM
+    this.typingInterval = 12000 / this.wordPerMinute; // Milliseconds per character
 
     this.multiplier = 1.0;   // default multiplier
     this.level = 1;          // starting level
