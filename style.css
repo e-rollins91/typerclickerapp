@@ -97,7 +97,17 @@ canvas#gameCanvas {
     z-index: 10;
     font-family: sans-serif;
 }
-
+#playerWPM {
+    position: fixed;
+    top: 110px; /* adjust as needed */
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
+    background: #fff;
+    padding: 5px 10px;
+    border: 1px solid #333;
+    border-radius: 5px;
+  }
 #statMeter {
     position: fixed;
     top: 20px;

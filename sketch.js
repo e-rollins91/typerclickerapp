@@ -76,6 +76,27 @@ const dictionary = [
     "Click and type",
 ];
 //
+function updateHamsterSpeed(wpm) {
+  let hamsterVideo = document.getElementById("hamsterVideo");
+  if (hamsterVideo) {
+    if (wpm <= 0) {
+      // Freeze the video by pausing it.
+      if (!hamsterVideo.paused) {
+        hamsterVideo.pause();
+      }
+    } else {
+      // If paused (from being at 0), play it.
+      if (hamsterVideo.paused) {
+        hamsterVideo.play();
+      }
+      // Adjust the playback rate.
+      // For example, map a range of 0-120 WPM to a playbackRate from 0.5 to 2.0.
+      // You can adjust these values to fit your needs.
+      let newRate = map(wpm, 0, 120, 0.5, 2.0);
+      hamsterVideo.playbackRate = newRate;
+    }
+  }
+}
 function spawnSparks(x, y, w, h) {
     const numSparks = 20; // Adjust number of sparks as desired.
     for (let i = 0; i < numSparks; i++) {
@@ -331,31 +352,28 @@ function mousePressed(event) {
 function updatePlayerWPM() {
   let now = millis();
   
-  // Remove any keystrokes older than 3 seconds.
+  // Remove keystrokes older than 3 seconds.
   while (typingTimestamps.length > 0 && now - typingTimestamps[0] > 3000) {
     typingTimestamps.shift();
   }
   
   let wpm = 0;
   if (typingTimestamps.length > 0) {
-    // Use the difference between the most recent and the oldest keystroke in the window.
     let timeInterval = now - typingTimestamps[0];
-    // Prevent division by zero or extremely low time interval.
-    timeInterval = max(timeInterval, 100); 
-    
-    // Characters per minute: (# keystrokes / active time in minutes)
+    timeInterval = max(timeInterval, 100); // Avoid division by zero.
     let cpm = typingTimestamps.length / (timeInterval / 60000);
-    // Convert characters per minute to words per minute (assuming 5 characters per word)
     wpm = cpm / 5;
   }
   
-  // Update a DOM element to display the player's WPM.
-  // Make sure your HTML includes an element with id "playerWPM".
   let wpmDisplay = select("#playerWPM");
   if (wpmDisplay) {
     wpmDisplay.html("Player WPM: " + wpm.toFixed(1));
   }
+  
+  // Update the hamster video speed based on current WPM.
+  updateHamsterSpeed(wpm);
 }
+
 function mouseReleased() {
     if (mouseButton === LEFT) {
         for (let box of boxes) {

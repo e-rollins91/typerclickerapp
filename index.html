@@ -8,10 +8,15 @@
   <script src="sketch.js" defer></script>
 </head>
 <body>
+    <div id="hamsterContainer" style="position: fixed; top: 0; left: 50%; transform: translateX(-50%); z-index:10;">
+        <video id="hamsterVideo" autoplay loop muted width="125" height="100">
+          <source src="hamster.mp4" type="video/mp4">
+          Your browser does not support the video tag.
+        </video>
+      </div>
   <!-- Score Display -->
+<div id="playerWPM" style="position: fixed; top: 100px; left: 50%; transform: translateX(-50%); z-index: 10; background: #fff; padding: 5px 10px; border: 1px solid #333; border-radius: 5px;"></div>
 <div id="scoreDisplay"></div>
-<div id="playerWPM" style="position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 10; background: #fff; padding: 5px 10px; border: 1px solid #333; border-radius: 5px;"></div>
-
 
   <!-- Shop Icon (always visible at top left) -->
   <div id="shopIcon">🛒</div>
