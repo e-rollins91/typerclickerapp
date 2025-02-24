@@ -861,7 +861,7 @@ class AutoTyper {
 
     // New properties for upgrades:
     this.wordPerMinute = 5; // default WPM
-    this.typingInterval = 60000 / (this.wordPerMinute * 5);
+    this.typingInterval = 12000 / (this.wordPerMinute * 5);
 
 
     this.multiplier = 1.0;   // default multiplier
