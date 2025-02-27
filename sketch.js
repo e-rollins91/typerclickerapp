@@ -64,7 +64,19 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 });
 
+let hamsterSpriteSheet; // Keep the global variable name for consistency, but you can rename it if desired
 
+function preload() {
+  try {
+    hamsterSpriteSheet = loadImage('images/autoTyper.png');
+    console.log("Sprite sheet loaded successfully as autoTyper.png.");
+  } catch (error) {
+    console.error("Failed to load hamster sprite sheet:", error);
+    hamsterSpriteSheet = createImage(30, 30); // Fallback: create a blank 30x30 image
+    hamsterSpriteSheet.loadPixels();
+    console.warn("Using fallback image for hamster sprite.");
+  }
+}
 // Sample dictionary for sentences
 const dictionary = [
     "The quick brown fox jumps over the lazy dog",
@@ -373,7 +385,6 @@ function updatePlayerWPM() {
   // Update the hamster video speed based on current WPM.
   updateHamsterSpeed(wpm);
 }
-
 function mouseReleased() {
     if (mouseButton === LEFT) {
         for (let box of boxes) {
@@ -858,29 +869,29 @@ class AutoTyper {
     this.offsetY = 0;
     this.attachedBox = null;
     this.lastUpdateTime = millis();
-
-    // New properties for upgrades:
-    this.wordPerMinute = 5; // default WPM
+    this.wordPerMinute = 5;
     this.typingInterval = 12000 / (this.wordPerMinute * 5);
+    this.multiplier = 1.0;
+    this.level = 1;
 
-
-    this.multiplier = 1.0;   // default multiplier
-    this.level = 1;          // starting level
+    // Animation properties (with fallback)
+    this.frameWidth = hamsterSpriteSheet.width || 30;
+    this.frameHeight = 128;
+    this.frameCount = hamsterSpriteSheet ? floor(hamsterSpriteSheet.height / this.frameHeight) : 1;
+    this.currentFrame = 0;
+    this.animationSpeed = 0.1;
+    this.frameTimer = 0;
   }
   
   update() {
     if (this.attachedBox) {
-      // Sync auto typer's position with the attached box.
       this.x = this.attachedBox.x + this.attachedBox.w - 15;
       this.y = this.attachedBox.y + 15;
-      
-      // If the attached box isn't finished, continue auto typing.
       if (!this.attachedBox.finished) {
         if (millis() - this.lastUpdateTime > this.typingInterval) {
           if (this.attachedBox.currentIndex < this.attachedBox.prompt.length) {
             this.attachedBox.currentIndex++;
           } else {
-            // Box is complete.
             this.attachedBox.finished = true;
             if (this.attachedBox.type === "sentence") {
               points += this.attachedBox.prompt.length * sentenceModifier;
@@ -898,45 +909,68 @@ class AutoTyper {
       this.x = mouseX + this.offsetX;
       this.y = mouseY + this.offsetY;
     }
+
+    this.frameTimer += this.animationSpeed;
+    if (this.frameTimer >= 1) {
+      this.frameTimer = 0;
+      this.currentFrame = (this.currentFrame + 1) % this.frameCount;
+    }
   }
   
   display() {
-    push(); // Save the current drawing state
+    push();
+    let dw, dh;
     if (!this.attachedBox) {
-      // Check if this auto typer is selected.
-      if (activeAutoTyper === this) {
-        stroke(255, 0, 0); // Red outline for selected
-        strokeWeight(4);
-      } else {
-        stroke(0);
-        strokeWeight(1);
-      }
-      fill(200, 200, 255);
-      ellipse(this.x, this.y, 30, 30);
-      fill(0);
-      textSize(12);
-      textAlign(CENTER, CENTER);
-      text("AT", this.x, this.y);
+      dw = 30;
+      dh = 30;
     } else {
-      // When attached, its badge is drawn in the box's display() method.
-      // If this auto typer is selected, add an extra highlight.
+      dw = 20;
+      dh = 20;
+    }
+
+    if (!hamsterSpriteSheet || hamsterSpriteSheet.width === 30) {
+      // Fallback: Draw a circle with "AT" if sprite sheet fails or is a fallback
+      if (!this.attachedBox) {
+        if (activeAutoTyper === this) {
+          stroke(255, 0, 0);
+          strokeWeight(4);
+        } else {
+          stroke(0);
+          strokeWeight(1);
+        }
+        fill(200, 200, 255);
+        ellipse(this.x, this.y, dw, dh);
+        fill(0);
+        textSize(12);
+        textAlign(CENTER, CENTER);
+        text("AT", this.x, this.y);
+      }
+    } else {
+      let sx = 0;
+      let sy = this.currentFrame * this.frameHeight;
+      let sw = this.frameWidth;
+      let sh = this.frameHeight;
+      let dx = this.x - dw / 2;
+      let dy = this.y - dh / 2;
+      image(hamsterSpriteSheet, dx, dy, dw, dh, sx, sy, sw, sh);
+
       if (activeAutoTyper === this) {
         stroke(255, 0, 0);
-        strokeWeight(4);
+        strokeWeight(2);
         noFill();
-        ellipse(this.x, this.y, 34, 34); // slightly larger than the badge
+        rect(dx, dy, dw, dh);
       }
     }
-    pop(); // Restore the drawing state so that other elements aren't affected
+    pop();
   }
   
-  
   pressed() {
-    if (dist(mouseX, mouseY, this.x, this.y) < 15) {
+    let radius = this.attachedBox ? 10 : 15;
+    if (dist(mouseX, mouseY, this.x, this.y) < radius) {
       activeAutoTyper = this;
       updateAutoTyperInfo();
     }
-    if (dist(mouseX, mouseY, this.x, this.y) < 15 && !this.attachedBox) {
+    if (dist(mouseX, mouseY, this.x, this.y) < radius && !this.attachedBox) {
       this.dragging = true;
       this.offsetX = this.x - mouseX;
       this.offsetY = this.y - mouseY;
