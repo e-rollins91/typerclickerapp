@@ -70,9 +70,10 @@ function preload() {
   try {
     hamsterSpriteSheet = loadImage('images/autoTyper.png');
     console.log("Sprite sheet loaded successfully as autoTyper.png.");
+    console.log("Image dimensions:", hamsterSpriteSheet.width, "x", hamsterSpriteSheet.height);
   } catch (error) {
     console.error("Failed to load hamster sprite sheet:", error);
-    hamsterSpriteSheet = createImage(30, 30); // Fallback: create a blank 30x30 image
+    hamsterSpriteSheet = createImage(60, 30);
     hamsterSpriteSheet.loadPixels();
     console.warn("Using fallback image for hamster sprite.");
   }
@@ -921,11 +922,13 @@ class AutoTyper {
     push();
     let dw, dh;
     if (!this.attachedBox) {
-      dw = 30;
-      dh = 30;
+      // Unattached: Scale to 35x35 (square, less wide than 60x35)
+      dw = 35;
+      dh = 35;
     } else {
-      dw = 20;
-      dh = 20;
+      // Attached: Scale to 25x25 (square, smaller size)
+      dw = 25;
+      dh = 25;
     }
 
     if (!hamsterSpriteSheet || hamsterSpriteSheet.width === 30) {
@@ -958,6 +961,7 @@ class AutoTyper {
         stroke(255, 0, 0);
         strokeWeight(2);
         noFill();
+        // Match the outline size to the sprite size (dw, dh)
         rect(dx, dy, dw, dh);
       }
     }
@@ -965,7 +969,7 @@ class AutoTyper {
   }
   
   pressed() {
-    let radius = this.attachedBox ? 10 : 15;
+    let radius = this.attachedBox ? 12.5 : 17.5; // Half of dw/dh for attached (25/2) and unattached (35/2)
     if (dist(mouseX, mouseY, this.x, this.y) < radius) {
       activeAutoTyper = this;
       updateAutoTyperInfo();
@@ -976,7 +980,6 @@ class AutoTyper {
       this.offsetY = this.y - mouseY;
     }
   }
-  
   released() {
     if (this.dragging) {
       this.dragging = false;
