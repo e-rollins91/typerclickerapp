@@ -73,7 +73,7 @@ function preload() {
     console.log("Image dimensions:", hamsterSpriteSheet.width, "x", hamsterSpriteSheet.height);
   } catch (error) {
     console.error("Failed to load hamster sprite sheet:", error);
-    hamsterSpriteSheet = createImage(60, 30);
+    hamsterSpriteSheet = createImage(128, 128);
     hamsterSpriteSheet.loadPixels();
     console.warn("Using fallback image for hamster sprite.");
   }
@@ -876,7 +876,7 @@ class AutoTyper {
     this.level = 1;
 
     // Animation properties (with fallback)
-    this.frameWidth = hamsterSpriteSheet.width || 30;
+    this.frameWidth = 128;
     this.frameHeight = 128;
     this.frameCount = hamsterSpriteSheet ? floor(hamsterSpriteSheet.height / this.frameHeight) : 1;
     this.currentFrame = 0;
