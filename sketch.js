@@ -11,6 +11,7 @@ let activeAutoTyper = null;
 let autoTyperInfo; // We'll initialize this in setup()
 let sparks = [];
 let typingTimestamps = [];
+let hamsterSpriteSheet; // Keep the global variable name for consistency, but you can rename it if desired
 
 // shop setup 
 document.addEventListener("DOMContentLoaded", () => {
@@ -63,9 +64,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 });
-
-let hamsterSpriteSheet; // Keep the global variable name for consistency, but you can rename it if desired
-
 function preload() {
   try {
     hamsterSpriteSheet = loadImage('images/autoTyper.png');
@@ -88,7 +86,6 @@ const dictionary = [
     "Snap those boxes",
     "Click and type",
 ];
-//
 function updateHamsterSpeed(wpm) {
   let hamsterVideo = document.getElementById("hamsterVideo");
   if (hamsterVideo) {
@@ -305,6 +302,7 @@ function draw() {
       text("TYPERS", width/2, height - 50);
     pop();
     updatePlayerWPM();
+    updateAutoTyperPreview();
     // Update and display sparks (draw these first so they appear behind boxes).
     for (let i = sparks.length - 1; i >= 0; i--) {
       sparks[i].update();
@@ -618,6 +616,37 @@ function upgradeActiveAutoTyper() {
     updateAutoTyperInfo();
     saveGameState();
 }
+function updateAutoTyperPreview() {
+  const previewCanvas = document.getElementById("atPreviewCanvas");
+  if (!activeAutoTyper || !previewCanvas || !hamsterSpriteSheet) return;
+
+  const ctx = previewCanvas.getContext("2d");
+  // Clear previous frame
+  ctx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+
+  // Calculate scale so that the sprite frame fills the canvas width.
+  const scale = previewCanvas.width / activeAutoTyper.frameWidth;
+  const dw = activeAutoTyper.frameWidth * scale;
+  const dh = activeAutoTyper.frameHeight * scale;
+
+  // Determine the source rectangle for the current frame.
+  const sx = 0;
+  const sy = activeAutoTyper.currentFrame * activeAutoTyper.frameHeight;
+  const sw = activeAutoTyper.frameWidth;
+  const sh = activeAutoTyper.frameHeight;
+
+  // Center the destination image on the preview canvas.
+  const dx = (previewCanvas.width - dw) / 2;
+  const dy = (previewCanvas.height - dh) / 2;
+
+  // Draw the current frame of the sprite on the preview canvas.
+  ctx.drawImage(
+    hamsterSpriteSheet.canvas || hamsterSpriteSheet, 
+    sx, sy, sw, sh,
+    dx, dy, dw, dh
+  );
+}
+
 function wpmToMillisecondsPerCharacter(wpm) {
     const charactersPerMinute = wpm * 5;
     return 60000 / charactersPerMinute;
@@ -869,27 +898,39 @@ class AutoTyper {
     this.offsetX = 0;
     this.offsetY = 0;
     this.attachedBox = null;
-    this.lastUpdateTime = millis();
+    // Separate timers: one for typing and one for animation.
+    this.lastTypingUpdate = millis();
+    this.lastFrameUpdate = millis();
     this.wordPerMinute = 5;
-    this.typingInterval = 12000 / (this.wordPerMinute * 5);
+    this.typingInterval = 12000 / (this.wordPerMinute * 5); // ~480ms (for example)
     this.multiplier = 1.0;
     this.level = 1;
 
-    // Animation properties (with fallback)
+    // Animation properties
     this.frameWidth = 128;
     this.frameHeight = 128;
     this.frameCount = hamsterSpriteSheet ? floor(hamsterSpriteSheet.height / this.frameHeight) : 1;
     this.currentFrame = 0;
-    this.animationSpeed = 0.1;
-    this.frameTimer = 0;
+    this.animationFps = 4; // desired animation FPS
+    this.animationInterval = 1000 / this.animationFps;
+    
+    // Define frame ranges for different states
+    this.idleFrames = [0, 1, 2, 3];
+    this.attachSequence = { start: 4, end: 13 };
+    this.attachedLoop = { start: 14, end: 24 };
+    this.detachSequence = { start: 25, end: 32 };
+
+    // Animation state: "idle", "attach", "attached", or "detach"
+    this.animationState = "idle";
   }
   
   update() {
+    // --- Typing Update (if attached) ---
     if (this.attachedBox) {
       this.x = this.attachedBox.x + this.attachedBox.w - 15;
       this.y = this.attachedBox.y + 15;
       if (!this.attachedBox.finished) {
-        if (millis() - this.lastUpdateTime > this.typingInterval) {
+        if (millis() - this.lastTypingUpdate > this.typingInterval) {
           if (this.attachedBox.currentIndex < this.attachedBox.prompt.length) {
             this.attachedBox.currentIndex++;
           } else {
@@ -903,18 +944,61 @@ class AutoTyper {
             spawnSparks(this.attachedBox.x, this.attachedBox.y, this.attachedBox.w, this.attachedBox.h);
             this.attachedBox.reset();
           }
-          this.lastUpdateTime = millis();
+          this.lastTypingUpdate = millis();
         }
       }
     } else if (this.dragging) {
-      this.x = mouseX + this.offsetX;
-      this.y = mouseY + this.offsetY;
+  // Determine the size of the auto typer (adjust if attached vs. not attached)
+  let dw = this.attachedBox ? 30 : 60;
+  let newX = mouseX + this.offsetX;
+  let newY = mouseY + this.offsetY;
+  // Constrain the position so the auto typer remains fully visible on the canvas.
+  this.x = constrain(newX, dw / 2, width - dw / 2);
+  this.y = constrain(newY, dw / 2, height - dw / 2);
     }
 
-    this.frameTimer += this.animationSpeed;
-    if (this.frameTimer >= 1) {
-      this.frameTimer = 0;
-      this.currentFrame = (this.currentFrame + 1) % this.frameCount;
+    // --- Animation Update (separate timer) ---
+    if (millis() - this.lastFrameUpdate > this.animationInterval) {
+      if (this.attachedBox) {
+        // When attached:
+        if (this.animationState === "idle" || this.animationState === "detach") {
+          this.animationState = "attach";
+          this.currentFrame = this.attachSequence.start;
+        }
+        if (this.animationState === "attach") {
+          if (this.currentFrame < this.attachSequence.end) {
+            this.currentFrame++;
+          }
+          if (this.currentFrame >= this.attachSequence.end) {
+            this.animationState = "attached";
+            this.currentFrame = this.attachedLoop.start;
+          }
+        } else if (this.animationState === "attached") {
+          this.currentFrame++;
+          if (this.currentFrame > this.attachedLoop.end) {
+            this.currentFrame = this.attachedLoop.start;
+          }
+        }
+      } else {
+        // When not attached:
+        if (this.animationState === "attach" || this.animationState === "attached") {
+          this.animationState = "detach";
+          this.currentFrame = this.detachSequence.start;
+        } else if (this.animationState === "detach") {
+          if (this.currentFrame < this.detachSequence.end) {
+            this.currentFrame++;
+          } else {
+            this.animationState = "idle";
+            this.currentFrame = this.idleFrames[0];
+          }
+        } else if (this.animationState === "idle") {
+          // Cycle through idleFrames array.
+          let idx = this.idleFrames.indexOf(this.currentFrame);
+          idx = (idx === -1) ? 0 : (idx + 1) % this.idleFrames.length;
+          this.currentFrame = this.idleFrames[idx];
+        }
+      }
+      this.lastFrameUpdate = millis();
     }
   }
   
@@ -922,17 +1006,15 @@ class AutoTyper {
     push();
     let dw, dh;
     if (!this.attachedBox) {
-      // Unattached: Scale to 35x35 (square, less wide than 60x35)
-      dw = 35;
-      dh = 35;
+      dw = 50;
+      dh = 50;
     } else {
-      // Attached: Scale to 25x25 (square, smaller size)
-      dw = 25;
-      dh = 25;
+      dw = 30;
+      dh = 30;
     }
-
+    
     if (!hamsterSpriteSheet || hamsterSpriteSheet.width === 30) {
-      // Fallback: Draw a circle with "AT" if sprite sheet fails or is a fallback
+      // Fallback drawing
       if (!this.attachedBox) {
         if (activeAutoTyper === this) {
           stroke(255, 0, 0);
@@ -956,12 +1038,11 @@ class AutoTyper {
       let dx = this.x - dw / 2;
       let dy = this.y - dh / 2;
       image(hamsterSpriteSheet, dx, dy, dw, dh, sx, sy, sw, sh);
-
+      
       if (activeAutoTyper === this) {
         stroke(255, 0, 0);
         strokeWeight(2);
         noFill();
-        // Match the outline size to the sprite size (dw, dh)
         rect(dx, dy, dw, dh);
       }
     }
@@ -969,7 +1050,7 @@ class AutoTyper {
   }
   
   pressed() {
-    let radius = this.attachedBox ? 12.5 : 17.5; // Half of dw/dh for attached (25/2) and unattached (35/2)
+    let radius = this.attachedBox ? 12.5 : 17.5;
     if (dist(mouseX, mouseY, this.x, this.y) < radius) {
       activeAutoTyper = this;
       updateAutoTyperInfo();
@@ -980,6 +1061,7 @@ class AutoTyper {
       this.offsetY = this.y - mouseY;
     }
   }
+  
   released() {
     if (this.dragging) {
       this.dragging = false;

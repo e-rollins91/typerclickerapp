@@ -31,7 +31,7 @@ canvas#gameCanvas {
     background-color: rgba(0, 0, 0, 0.5);
 }
 
-/* Modal content box with absolute positioning */
+
 .modal-content {
     position: absolute;
     width: 300px;
@@ -44,7 +44,7 @@ canvas#gameCanvas {
     transform: translate(-50%, -50%);
 }
 
-/* Drag handle styling */
+
 .shop-header {
     cursor: move;
     background-color: #f1f1f1;
@@ -52,7 +52,7 @@ canvas#gameCanvas {
     border-bottom: 1px solid #ccc;
 }
 
-/* Close button styling remains the same */
+
 .close {
     color: #aaa;
     float: right;
@@ -61,14 +61,13 @@ canvas#gameCanvas {
     cursor: pointer;
 }
 
-/* Container for our three buttons */
+
 #controls {
     display: flex;
     flex-direction: column;
     gap: 10px;
 }
 
-/* Shared button styling */
 #controls button {
     padding: 10px 20px;
     font-size: 16px;
@@ -78,7 +77,6 @@ canvas#gameCanvas {
     cursor: pointer;
 }
 
-/* Existing styles for other elements remain unchanged */
 #autoTyperInfo button {
     margin-top: 10px;
     padding: 5px 10px;
@@ -87,9 +85,9 @@ canvas#gameCanvas {
 
 .infoPanel {
     position: fixed;
-    top: 80px;
-    right: 20px;
-    width: 200px;
+    top: 98px;
+    left: 20px;       
+    width: 150px;     
     padding: 10px;
     background-color: #fff;
     border: 1px solid #333;
@@ -97,9 +95,10 @@ canvas#gameCanvas {
     z-index: 10;
     font-family: sans-serif;
 }
+
 #playerWPM {
     position: fixed;
-    top: 110px; /* adjust as needed */
+    top: 110px; 
     left: 50%;
     transform: translateX(-50%);
     z-index: 10;

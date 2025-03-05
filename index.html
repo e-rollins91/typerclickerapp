@@ -44,12 +44,15 @@
 
   <!-- AutoTyper Info Panel -->
   <div id="autoTyperInfo" class="infoPanel">
-    <h3>Auto Typer Info <span id="atLevel" style="float:right; font-size: 0.8em;">Level: 1</span></h3>
+    <!-- Preview Canvas for AutoTyper Animation -->
+    <canvas id="atPreviewCanvas" width="150" height="150"></canvas>
+    <h3>Ham Typer<span id="atLevel" style="float:right; font-size: 0.8em;">Level: 1</span></h3>
     <p id="atWPM">WPM: </p>
     <p id="atMultiplier">Multiplier: </p>
     <button id="upgradeATBtn">WPM +1 [Cost: 10]</button>
     <button id="detachATBtn">Detach AutoTyper</button>
   </div>
+  
 
   <!-- Reset Game Button -->
   <button id="resetGameBtn" style="position: fixed; bottom: 20px; left: 20px; z-index:10;">Reset Game</button>
